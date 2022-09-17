@@ -35,7 +35,8 @@ const wordStartX = 0;
 // let placeNextLetterX = 0;
 const randomVals = [];
 
-const originalPositionsX = ["0"];
+// const originalPositionsX = ["0"];
+const originalPositionsX = [];
 
 /**
  * FONT LOADER
@@ -82,25 +83,24 @@ fontLoader.load(
       if (i > 0) {
         // placeNextLetterX = wordStartX + totalWordLength;
         letter.position.x = wordStartX + totalWordLength;
-        originalPositionsX.push(letter.position.x);
+        // originalPositionsX.push(letter.position.x);
       }
       // gen random values for each letter x,y,z
       randomVals.push(Math.random(), Math.random(), Math.random());
     });
     // find length of a group:
     const groupBoundingBox = new THREE.Box3().setFromObject(lettersGroup);
-    // center group
-    lettersGroup.position.x = -groupBoundingBox.max.x * 0.5;
 
-    // Set random xyz positions equal to time elapsed at 1 sec
-    // letter.position.x =
-    //     Math.cos(elapsedTime * (randomVals[i + 1] / 2)) * radius;
+    // center group - PROBLEM HERE - DOESN'T CHANGE COORDS OF INDIVIDUAL MESHES
+    const groupBoxLen = groupBoundingBox.max.x * 0.5;
 
-    //   letter.position.y = Math.sin(elapsedTime) * (randomVals[i] / 2);
-
-    //   letter.position.z =
-    //     Math.sin(elapsedTime * (randomVals[i + 3] / 2)) * radius;
-    //   radius += 0.5;
+    // move each letter -x depending on the lenght of the boundingbox of th group
+    // this centers each letter instead of the group, which causes problems
+    for (const letter of lettersGroup.children) {
+      const centeredLetterX = letter.position.x - groupBoxLen;
+      // add to original positions array which is used to place letters for animations
+      originalPositionsX.push(centeredLetterX);
+    }
   }
 );
 
@@ -113,6 +113,7 @@ const canvas = document.querySelector("canvas.webgl");
 // Scene
 const scene = new THREE.Scene();
 scene.add(lettersGroup);
+scene.add(axesHelper);
 
 // light
 const ambientLight = new THREE.AmbientLight();
@@ -155,8 +156,8 @@ const camera = new THREE.PerspectiveCamera(
   100
 );
 camera.position.z = 10;
-camera.position.y = -5;
-camera.position.x = 2;
+// camera.position.y = -5;
+// camera.position.x = -1.34;
 scene.add(camera);
 
 /**
@@ -190,17 +191,17 @@ window.addEventListener("click", () => {
 
   if (toggler === false) {
   }
-
+  // elapsed time has to be longer than the duration of this animation for it to work
   lettersGroup.children.forEach((letter, i) => {
     gsap.to(letter.position, {
-      duration: 1.5,
+      duration: 0.5,
       ease: "power2.inOut",
       x: originalPositionsX[i],
       y: "0",
       z: "0",
     });
     gsap.to(letter.rotation, {
-      duration: 1.5,
+      duration: 0.5,
       x: "0",
       y: "0",
     });
@@ -222,11 +223,11 @@ const tick = () => {
         // here the final value originalPositionsX[i] is the radius, ensuring all letters
         // start at the correct position, based on their starting x position, which is now radius
         letter.position.x =
-          Math.cos(elapsedTimeMod * (randomVals[i + 1] / 2)) *
+          Math.cos(-elapsedTimeMod * (randomVals[i] / 2)) *
           originalPositionsX[i];
 
-        // if (i === 0) console.log(letter.position.x);
-        letter.position.y = Math.sin(elapsedTime) * (randomVals[i] / 2);
+        // if (i === 3) console.log(letter.position.x);
+        letter.position.y = Math.sin(elapsedTime) * (randomVals[i + 1] / 2);
 
         letter.position.z =
           Math.sin(elapsedTimeMod * (randomVals[i + 3] / 2)) * radius;
