@@ -19,15 +19,50 @@ const parameters = {
 const axesHelper = new THREE.AxesHelper();
 
 /**
+ * Texture load
+ */
+const textureLoader = new THREE.TextureLoader();
+const matcapTexture = textureLoader.load("/textures/matcaps/8.png");
+const particlesTexture = textureLoader.load("/textures/particles/star_07.png");
+
+/**
+ * Particles
+ */
+const particlesMaterial = new THREE.PointsMaterial({
+  size: 0.5,
+  sizeAttenuation: true,
+  alphaMap: particlesTexture,
+  color: 0x5d546b,
+  transparent: true,
+  depthWrite: false,
+});
+particlesMaterial.blending = THREE.AdditiveBlending;
+const particlesGeometry = new THREE.BufferGeometry();
+const count = 2000;
+
+const positions = new Float32Array(count * 3);
+
+for (let i = 0; i < count * 3; i++) {
+  positions[i] = (Math.random() - 0.5) * 12;
+}
+
+particlesGeometry.setAttribute(
+  "position",
+  new THREE.BufferAttribute(positions, 3)
+);
+
+const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+particles.position.z -= 3;
+/**
  * Text
  */
-const textMaterial = new THREE.MeshNormalMaterial();
+const textMaterial = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
 const lettersGroup = new THREE.Group();
 
 function itemiseText(str) {
   return str.split("");
 }
-const letterArr = itemiseText("Letters");
+const letterArr = itemiseText("Michael");
 
 // spacing
 let distanceBetween = 0.1;
@@ -45,7 +80,7 @@ const fontLoader = new FontLoader();
 
 fontLoader.load(
   // source
-  "fonts/helvetiker_bold.typeface.json",
+  "fonts/gentilis_bold.typeface.json",
   (font) => {
     // CREATE ALL LETTERS
     letterArr.forEach((element, i) => {
@@ -77,7 +112,6 @@ fontLoader.load(
       }
 
       lettersGroup.add(letter);
-      //   console.log(letter);
 
       // calc position x for letters after the first
       if (i > 0) {
@@ -113,6 +147,7 @@ const canvas = document.querySelector("canvas.webgl");
 // Scene
 const scene = new THREE.Scene();
 scene.add(lettersGroup);
+scene.add(particles);
 scene.add(axesHelper);
 
 // light
@@ -179,74 +214,115 @@ controls.update();
  * Animate
  */
 
+// CHANGE TOGGLER TO FALSE - UNCOMMENT EVENT LISTENER BELOW
 let toggler = false;
 
 const clock = new THREE.Clock();
-let previousTime = 0;
+// let previousTime = 0;
 
 window.addEventListener("click", () => {
   toggler = !toggler;
   // reset clock/ elapsed time on each click
   clock.start();
 
-  if (toggler === false) {
+  // spread letters in fist instance
+  //   if (toggler === false) {
+  //     lettersGroup.children.forEach((letter, i) => {
+  //       const newX = String(originalPositionsX[i] * 2);
+  //       gsap.to(letter.position, {
+  //         duration: 0.2,
+  //         ease: "power2.inOut",
+  //         x: newX,
+  //         y: "0",
+  //         z: "0",
+  //       });
+  //       //   gsap.to(letter.rotation, {
+  //       //     duration: 0.5,
+  //       //     x: "0",
+  //       //     y: "0",
+  //       //   });
+  //     });
+  //   }
+  if (toggler === true) {
+    // elapsed time has to be longer than the duration of this animation for it to work
+    lettersGroup.children.forEach((letter, i) => {
+      gsap.to(letter.position, {
+        duration: 0.5,
+        ease: "power2.inOut",
+        x: originalPositionsX[i],
+        y: "0",
+        z: "0",
+      });
+      gsap.to(letter.rotation, {
+        duration: 0.5,
+        x: "0",
+        y: "0",
+      });
+    });
   }
-  // elapsed time has to be longer than the duration of this animation for it to work
-  lettersGroup.children.forEach((letter, i) => {
-    gsap.to(letter.position, {
-      duration: 0.5,
-      ease: "power2.inOut",
-      x: originalPositionsX[i],
-      y: "0",
-      z: "0",
-    });
-    gsap.to(letter.rotation, {
-      duration: 0.5,
-      x: "0",
-      y: "0",
-    });
-  });
 });
+
+// Paralax
+const cursor = {};
+cursor.x = 0;
+cursor.y = 0;
+
+window.addEventListener("mousemove", (event) => {
+  cursor.x = event.clientX / sizes.width - 0.5;
+  cursor.y = event.clientY / sizes.height - 0.5;
+});
+
+let previousTime = 0;
 
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
+
+  // paralax
   const deltaTime = elapsedTime - previousTime;
   previousTime = elapsedTime;
-  //   console.log(elapsedTime);
+
+  const parallaxX = cursor.x;
+  const parallaxY = -cursor.y;
+  camera.position.x += (parallaxX - camera.position.x) * 0.1;
+  camera.position.y += (parallaxY - camera.position.y) * 0.1;
+
+  // animate particles
+  //   particles.position.x = Math.sin(elapsedTime * 0.2);
+  //   particles.position.z = Math.cos(elapsedTime * 0.2);
+
+  // animate letters
   let elapsedTimeMod = elapsedTime * 0.8;
   // test
   if (lettersGroup.children[0] && !toggler) {
     let radius = 3;
 
-    lettersGroup.children.forEach(
-      (letter, i) => {
-        // here the final value originalPositionsX[i] is the radius, ensuring all letters
-        // start at the correct position, based on their starting x position, which is now radius
-        letter.position.x =
-          Math.cos(-elapsedTimeMod * (randomVals[i] / 2)) *
-          originalPositionsX[i];
-
-        // if (i === 3) console.log(letter.position.x);
-        letter.position.y = Math.sin(elapsedTime) * (randomVals[i + 1] / 2);
-
-        letter.position.z =
-          Math.sin(elapsedTimeMod * (randomVals[i + 3] / 2)) * radius;
-        radius += 0.5;
-        // if (i === 0) console.log(letter.position.z);
-        letter.rotation.x = Math.sin(elapsedTime * randomVals[i]);
-        letter.rotation.y = Math.cos(elapsedTime * randomVals[i + 1]);
+    // manages initial expansion of radius. returned value is multiplied by
+    // original x position in order to manage radius of lettering and ensure it
+    // originates at each letter's original position but expands to 2x that.
+    function xRadius(elapsedTime) {
+      if (elapsedTime < 1) {
+        return elapsedTime + 1;
+      } else if (elapsedTime > 1) {
+        return 2;
       }
-      //   {
-      //     lettersGroup.children.forEach((letter, i) => {
-      //       letter.position.x += deltaTime * 0.1;
+    }
 
-      //       letter.position.y += deltaTime * 0.1;
+    lettersGroup.children.forEach((letter, i) => {
+      // here the final value originalPositionsX[i] is the radius, ensuring all letters
+      // start at the correct position, based on their starting x position, which is now radius
+      letter.position.x =
+        Math.cos(-elapsedTimeMod * (randomVals[i] / 2)) *
+        (originalPositionsX[i] * xRadius(elapsedTime));
 
-      //       letter.position.z += deltaTime * 0.1;
-      //       radius += 0.5;
-      //     });
-      //   }
-    );
+      letter.position.y = Math.sin(elapsedTime) * (randomVals[i + 1] / 2);
+
+      letter.position.z =
+        Math.sin(elapsedTimeMod * (randomVals[i + 3] / 2)) * radius;
+      radius += 0.5;
+
+      letter.rotation.x = Math.sin(elapsedTime * randomVals[i]);
+      letter.rotation.y = Math.cos(elapsedTime * randomVals[i + 1]);
+    });
   }
 
   // update controls
