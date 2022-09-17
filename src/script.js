@@ -87,6 +87,20 @@ fontLoader.load(
       // gen random values for each letter x,y,z
       randomVals.push(Math.random(), Math.random(), Math.random());
     });
+    // find length of a group:
+    const groupBoundingBox = new THREE.Box3().setFromObject(lettersGroup);
+    // center group
+    lettersGroup.position.x = -groupBoundingBox.max.x * 0.5;
+
+    // Set random xyz positions equal to time elapsed at 1 sec
+    // letter.position.x =
+    //     Math.cos(elapsedTime * (randomVals[i + 1] / 2)) * radius;
+
+    //   letter.position.y = Math.sin(elapsedTime) * (randomVals[i] / 2);
+
+    //   letter.position.z =
+    //     Math.sin(elapsedTime * (randomVals[i + 3] / 2)) * radius;
+    //   radius += 0.5;
   }
 );
 
@@ -108,32 +122,6 @@ const pointLight = new THREE.PointLight();
 pointLight.position.set(3, 3, 3);
 scene.add(pointLight);
 
-// // Material
-// let normalMaterial = new THREE.MeshNormalMaterial({});
-
-// /**
-//  * Icos
-//  */
-// let icosGeometry = new THREE.IcosahedronGeometry(1, parameters.shapeComplexity);
-// let icos = new THREE.Mesh(icosGeometry, normalMaterial);
-
-// scene.add(icos);
-// /**
-//  * Dodec
-//  */
-
-// const dodec = new THREE.Mesh(new THREE.DodecahedronGeometry(), normalMaterial);
-// dodec.position.x = 2;
-// scene.add(dodec);
-
-// /**
-//  * Octa
-//  */
-// const octa = new THREE.Mesh(new THREE.OctahedronGeometry(), normalMaterial);
-// octa.position.x = -2;
-// scene.add(octa);
-
-// const shapesArray = [icos, dodec, octa];
 /**
  * Sizes
  */
@@ -190,11 +178,18 @@ controls.update();
  * Animate
  */
 
-let toggler = true;
+let toggler = false;
+
+const clock = new THREE.Clock();
+let previousTime = 0;
 
 window.addEventListener("click", () => {
   toggler = !toggler;
-  console.log(lettersGroup.children[0].position);
+  // reset clock/ elapsed time on each click
+  clock.start();
+
+  if (toggler === false) {
+  }
 
   lettersGroup.children.forEach((letter, i) => {
     gsap.to(letter.position, {
@@ -212,53 +207,46 @@ window.addEventListener("click", () => {
   });
 });
 
-const clock = new THREE.Clock();
-
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
+  const deltaTime = elapsedTime - previousTime;
+  previousTime = elapsedTime;
+  //   console.log(elapsedTime);
   let elapsedTimeMod = elapsedTime * 0.8;
   // test
   if (lettersGroup.children[0] && !toggler) {
     let radius = 3;
 
-    lettersGroup.children.forEach((letter, i) => {
-      //   if (i % 2 === 0) elapsedTime = -elapsedTime;
+    lettersGroup.children.forEach(
+      (letter, i) => {
+        // here the final value originalPositionsX[i] is the radius, ensuring all letters
+        // start at the correct position, based on their starting x position, which is now radius
+        letter.position.x =
+          Math.cos(elapsedTimeMod * (randomVals[i + 1] / 2)) *
+          originalPositionsX[i];
 
-      letter.position.x =
-        Math.cos(elapsedTimeMod * (randomVals[i + 1] / 2)) * radius;
+        // if (i === 0) console.log(letter.position.x);
+        letter.position.y = Math.sin(elapsedTime) * (randomVals[i] / 2);
 
-      letter.position.y = Math.sin(elapsedTime) * (randomVals[i] / 2);
+        letter.position.z =
+          Math.sin(elapsedTimeMod * (randomVals[i + 3] / 2)) * radius;
+        radius += 0.5;
+        // if (i === 0) console.log(letter.position.z);
+        letter.rotation.x = Math.sin(elapsedTime * randomVals[i]);
+        letter.rotation.y = Math.cos(elapsedTime * randomVals[i + 1]);
+      }
+      //   {
+      //     lettersGroup.children.forEach((letter, i) => {
+      //       letter.position.x += deltaTime * 0.1;
 
-      letter.position.z =
-        Math.sin(elapsedTimeMod * (randomVals[i + 3] / 2)) * radius;
-      radius += 0.5;
+      //       letter.position.y += deltaTime * 0.1;
 
-      letter.rotation.x = elapsedTime * randomVals[i];
-      letter.rotation.y = elapsedTime * randomVals[i + 1];
-    });
+      //       letter.position.z += deltaTime * 0.1;
+      //       radius += 0.5;
+      //     });
+      //   }
+    );
   }
-
-  //animate shapes
-  //   const shape1Angle = elapsedTime * 0.5;
-  //   shapesArray[0].position.x = Math.cos(shape1Angle) * 6;
-  //   shapesArray[0].position.z = Math.sin(shape1Angle) * 6;
-  //   shapesArray[0].position.y = Math.sin(elapsedTime) * 2.5;
-  //   shapesArray[0].rotation.x = elapsedTime * 0.2;
-  //   shapesArray[0].rotation.y = elapsedTime * 0.5;
-
-  //   const shape2Angle = elapsedTime * 0.3;
-  //   shapesArray[1].position.x = -Math.cos(shape2Angle) * 4;
-  //   shapesArray[1].position.z = Math.sin(shape2Angle) * 4;
-  //   shapesArray[1].position.y = Math.sin(elapsedTime) * 1.75;
-  //   shapesArray[1].rotation.x = elapsedTime * 0.3;
-  //   shapesArray[1].rotation.y = elapsedTime * 0.6;
-
-  //   const shape3Angle = -elapsedTime * 0.3;
-  //   shapesArray[2].position.x = Math.cos(shape3Angle) * 2;
-  //   shapesArray[2].position.z = Math.sin(shape3Angle) * 2;
-  //   shapesArray[2].position.y = Math.sin(elapsedTime) * 1;
-  //   shapesArray[2].rotation.x = elapsedTime * 0.4;
-  //   shapesArray[2].rotation.y = elapsedTime * 0.7;
 
   // update controls
   controls.update();
